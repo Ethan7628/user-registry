@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://user-registry-production.up.railway.app';
 
 // Handle form submission
 document.getElementById('registerForm').addEventListener('submit', async function(event) {
