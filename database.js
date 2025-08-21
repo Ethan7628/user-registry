@@ -1,56 +1,59 @@
 // database.js
 const mysql = require('mysql2');
 
+console.log("=== DEBUG: Environment Check ===");
+console.log("Is DATABASE_URL defined?", !!process.env.DATABASE_URL);
+console.log("All environment variables:", Object.keys(process.env));
+
 // Only load the .env file if we are in development (not on Railway)
 if (!process.env.DATABASE_URL) {
-  // This console.log will prove we are in the right place
-  console.log("Running locally. Loading .env file...");
+  console.log("Running locally. Attempting to load .env file...");
   require('dotenv').config();
+  console.log("Loaded .env. Now is DB_HOST defined?", !!process.env.DB_HOST);
+} else {
+  console.log("Running on Railway. Using DATABASE_URL.");
 }
 
-// Check if we are on Railway (which provides DATABASE_URL)
+// Decide which configuration to use
+let connectionConfig;
 if (process.env.DATABASE_URL) {
   console.log("Using Railway DATABASE_URL...");
-  var connection = mysql.createConnection({
+  connectionConfig = {
     uri: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // REQUIRED for Railway's MySQL
-  });
-} else {
+    ssl: { rejectUnauthorized: false }
+  };
+} else if (process.env.DB_HOST) {
   console.log("Using local .env configuration...");
-  // Fall back to local .env variables for development
-  var connection = mysql.createConnection({
+  connectionConfig = {
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME
-  });
+  };
+} else {
+  console.error("FATAL: No database configuration found!");
+  process.exit(1);
 }
 
-// Connect to MySQL
+console.log("Attempting to connect with config:", {
+  ...connectionConfig,
+  password: connectionConfig.password ? '***HIDDEN***' : undefined
+});
+
+const connection = mysql.createConnection(connectionConfig);
+
+// ... rest of your connection code remains the same ...
 connection.connect((err) => {
   if (err) {
     console.error('Error connecting to MySQL:', err.message);
     process.exit(1);
-    return;
   }
   console.log('Connected to MySQL database!');
-
-  const createTableSQL = `
-    CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(50) NOT NULL,
-      email VARCHAR(100) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `;
-
+  
+  const createTableSQL = `CREATE TABLE IF NOT EXISTS users (...)`;
   connection.query(createTableSQL, (err) => {
-    if (err) {
-      console.error('Error creating users table:', err);
-    } else {
-      console.log('Users table is ready!');
-    }
+    if (err) console.error('Error creating table:', err);
+    else console.log('Users table is ready!');
   });
 });
 
