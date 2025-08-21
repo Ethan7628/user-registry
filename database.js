@@ -1,10 +1,20 @@
+// database.js
 const mysql = require('mysql2');
-require('dotenv').config();
+
+// Only load the .env file if we are in development (not on Railway)
+if (!process.env.DATABASE_URL) {
+  // This console.log will prove we are in the right place
+  console.log("Running locally. Loading .env file...");
+  require('dotenv').config();
+}
 
 // Check if we are on Railway (which provides DATABASE_URL)
 if (process.env.DATABASE_URL) {
   console.log("Using Railway DATABASE_URL...");
-  var connection = mysql.createConnection(process.env.DATABASE_URL);
+  var connection = mysql.createConnection({
+    uri: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // REQUIRED for Railway's MySQL
+  });
 } else {
   console.log("Using local .env configuration...");
   // Fall back to local .env variables for development
@@ -20,13 +30,11 @@ if (process.env.DATABASE_URL) {
 connection.connect((err) => {
   if (err) {
     console.error('Error connecting to MySQL:', err.message);
-    // This is a critical error, crash the app if it can't connect to the DB
     process.exit(1);
     return;
   }
   console.log('Connected to MySQL database!');
 
-  // Create the table if it doesn't exist (CRITICAL FOR RAILWAY)
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,7 +49,7 @@ connection.connect((err) => {
     if (err) {
       console.error('Error creating users table:', err);
     } else {
-      console.log('Users table is ready or already exists!');
+      console.log('Users table is ready!');
     }
   });
 });
