@@ -35,19 +35,27 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 
 // Function to load and display users
 async function loadUsers() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/users`);
-        const users = await response.json();
-        
-        const usersList = document.getElementById('usersList');
-        usersList.innerHTML = ''; // Clear previous list
-        
-        if (users.length === 0) {
-            usersList.innerHTML = '<p>No users found.</p>';
-            return;
-        }
-        
-        users.forEach(user => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users`);
+    const data = await response.json(); // Always parse as JSON
+
+    // FIRST, check if the response has an error
+    if (data.error) {
+      showMessage('Error: ' + data.message, 'error');
+      return;
+    }
+
+    // If no error, then use the users array
+    const users = data.users;
+    const usersList = document.getElementById('usersList');
+    usersList.innerHTML = '';
+
+    if (users.length === 0) {
+      usersList.innerHTML = '<p>No users found.</p>';
+      return;
+    }
+
+    users.forEach(user => {
             const userElement = document.createElement('div');
             userElement.className = 'user-item';
             userElement.innerHTML = `
@@ -57,11 +65,10 @@ async function loadUsers() {
             `;
             usersList.appendChild(userElement);
         });
-    } catch (error) {
-        showMessage('Error loading users: ' + error.message, 'error');
-    }
+  } catch (error) {
+    showMessage('Network error: ' + error.message, 'error');
+  }
 }
-
 // Function to show messages
 function showMessage(text, type) {
     const messageDiv = document.getElementById('message');
