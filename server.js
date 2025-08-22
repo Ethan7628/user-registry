@@ -26,9 +26,16 @@ app.post('/register', async (req, res) => {
     connection.query(sql, [username, email, hashedPassword], (err, results) => {
       if (err) {
         console.error(err);
-        return res.status(500).send('Error creating user. Maybe email already exists?');
+        return res.status(500).json({ // Use .json() instead of .send()
+          error: true,
+          message: 'Error creating user. Maybe email already exists?'
+        });
       }
-      res.status(201).send(`User created with ID: ${results.insertId}`);
+      // Success response can also be JSON
+      res.status(201).json({
+        error: false,
+        message: `User created with ID: ${results.insertId}`
+      });
     });
 
   } catch (error) {
@@ -37,15 +44,24 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// 2. GET ALL USERS ENDPOINT (GET /users) - To see your results!
+
+// 2. GET ALL USERS ENDPOINT (GET /users)
 app.get('/users', (req, res) => {
-  const sql = 'SELECT id, username, email FROM users'; // Never select the password!
+  const sql = 'SELECT id, username, email FROM users';
   connection.query(sql, (err, results) => {
     if (err) {
       console.error(err);
-      return res.status(500).send('Error fetching users');
+      // FIX: Send a JSON response even on error
+      return res.status(500).json({
+        error: true,
+        message: 'Error fetching users from database'
+      });
     }
-    res.json(results); // Send the results as JSON
+    // On success, send JSON
+    res.json({
+      error: false,
+      users: results
+    });
   });
 });
 
