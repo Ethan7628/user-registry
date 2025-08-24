@@ -1,25 +1,36 @@
 // database.js
 const mysql = require('mysql2');
 
-// Create a connection POOL (not a single connection)
+// DEBUG: Check if the environment variable is loaded
+console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+
+// Get the database URL from Railway (this is the MOST IMPORTANT LINE)
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error("FATAL: DATABASE_URL environment variable is not set on Railway");
+  // Don't exit, but the app won't work without this
+}
+
+// Create a connection pool with the Railway database URL
 const pool = mysql.createPool({
-  uri: process.env.DABASE_URL, // Railway's connection string
+  uri: databaseUrl, // Use the URL from Railway
   ssl: { rejectUnauthorized: false },
   waitForConnections: true,
-  connectionLimit: 10, // Max number of connections in the pool
+  connectionLimit: 10,
   queueLimit: 0,
-  acquireTimeout: 60000, // 60 seconds timeout for getting a connection
-  timeout: 60000, // 60 seconds timeout for queries
+  acquireTimeout: 60000,
+  timeout: 60000,
 });
 
-// Convert the pool to use promises (cleaner code with async/await)
+// Convert to promise-based pool
 const promisePool = pool.promise();
 
-// Test the connection when the app starts
+// Test the connection
 promisePool.getConnection()
   .then((connection) => {
-    console.log('Connected to MySQL database!');
-    connection.release(); // Release the connection back to the pool
+    console.log('Successfully connected to MySQL database on Railway!');
+    connection.release();
 
     // Create users table if it doesn't exist
     const createTableSQL = `
@@ -39,7 +50,10 @@ promisePool.getConnection()
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
+    console.error('This usually means:');
+    console.error('1. DATABASE_URL is incorrect or missing');
+    console.error('2. The database server is not running');
+    console.error('3. Network issues between your app and database');
   });
 
-// Export the promise-based pool
 module.exports = promisePool;
